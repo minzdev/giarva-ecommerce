@@ -3,13 +3,16 @@
   publish   = "dist"
   functions = "netlify/functions"
 
+[build.environment]
+  SECRETS_SCAN_OMIT_KEYS = "VITE_FIREBASE_API_KEY,VITE_FIREBASE_AUTH_DOMAIN,VITE_FIREBASE_PROJECT_ID,VITE_FIREBASE_STORAGE_BUCKET,VITE_FIREBASE_MESSAGING_SENDER_ID,VITE_FIREBASE_APP_ID,VITE_CLOUDINARY_CLOUD_NAME,VITE_CLOUDINARY_UPLOAD_PRESET,VITE_MIDTRANS_CLIENT_KEY,VITE_MIDTRANS_IS_PRODUCTION,MIDTRANS_SERVER_KEY,MIDTRANS_IS_PRODUCTION"
+
 # SPA routing — redirect all non-asset requests to index.html
 [[redirects]]
   from   = "/*"
   to     = "/index.html"
   status = 200
 
-# Proxy /.netlify/functions/* so frontend can call /api/* cleanly
+# Proxy /api/* to Netlify Functions
 [[redirects]]
   from   = "/api/*"
   to     = "/.netlify/functions/:splat"
