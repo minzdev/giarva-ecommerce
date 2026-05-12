@@ -270,48 +270,53 @@ export default function Checkout() {
             const { token } = await apiRes.json();
 
             // 4. Open Midtrans Snap popup
-            // Note: callbacks run inside Snap iframe context — keep them synchronous
-            // and use fire-and-forget for Firestore updates to avoid postMessage issues
+            // After Snap closes (any reason), poll Midtrans API for real status
+            const handleSnapClose = async (ordId) => {
+                try {
+                    const statusRes = await fetch(`/.netlify/functions/check-payment-status?orderId=${ordId}`);
+                    if (!statusRes.ok) return;
+                    const { appStatus, midtransStatus } = await statusRes.json();
+
+                    const updateData = { status: appStatus, midtransOrderId: ordId };
+                    if (appStatus === 'paid') updateData.paidAt = serverTimestamp();
+
+                    await updateDoc(doc(db, 'orders', ordId), updateData).catch(console.error);
+
+                    clearCart();
+                    setOrderId(ordId);
+                    setOrderSuccess(true);
+                    setIsSubmitting(false);
+
+                    if (appStatus === 'paid') {
+                        toast.success('Pembayaran berhasil! Pesanan sedang diproses.');
+                    } else if (appStatus === 'pending') {
+                        toast.success('Pesanan dibuat! Selesaikan pembayaran sesuai instruksi.');
+                    } else {
+                        toast.success('Pesanan tersimpan. Selesaikan pembayaran dari halaman Pesanan.');
+                    }
+                } catch {
+                    // Fallback: show success anyway, webhook will update status
+                    clearCart();
+                    setOrderId(ordId);
+                    setOrderSuccess(true);
+                    setIsSubmitting(false);
+                    toast.success('Pesanan tersimpan. Status akan diperbarui otomatis.');
+                }
+            };
+
             openSnapPayment(token, {
                 onSuccess: (result) => {
-                    // Fire-and-forget Firestore update
-                    updateDoc(doc(db, 'orders', newOrderId), {
-                        status: 'paid',
-                        midtransOrderId: result.order_id || newOrderId,
-                        paidAt: serverTimestamp(),
-                    }).catch(console.error);
-
-                    clearCart();
-                    setOrderId(newOrderId);
-                    setOrderSuccess(true);
-                    setIsSubmitting(false);
-                    toast.success('Pembayaran berhasil! Pesanan sedang diproses.');
+                    handleSnapClose(result.order_id || newOrderId);
                 },
                 onPending: (result) => {
-                    // Payment pending (VA/QRIS waiting for payment)
-                    updateDoc(doc(db, 'orders', newOrderId), {
-                        status: 'pending',
-                        midtransOrderId: result.order_id || newOrderId,
-                    }).catch(console.error);
-
-                    clearCart();
-                    setOrderId(newOrderId);
-                    setOrderSuccess(true);
-                    setIsSubmitting(false);
-                    toast.success('Pesanan dibuat! Selesaikan pembayaran sesuai instruksi.');
+                    handleSnapClose(result.order_id || newOrderId);
                 },
                 onError: () => {
                     setErrorMessage('Pembayaran gagal. Silakan coba lagi atau pilih metode lain.');
                     setIsSubmitting(false);
                 },
                 onClose: () => {
-                    // User closed without paying — order stays as pending_payment
-                    // Show info so they can pay later from Orders page
-                    clearCart();
-                    setOrderId(newOrderId);
-                    setOrderSuccess(true);
-                    setIsSubmitting(false);
-                    toast.success('Pesanan tersimpan. Selesaikan pembayaran dari halaman Pesanan.');
+                    handleSnapClose(newOrderId);
                 },
             });
         } catch (error) {
