@@ -17,10 +17,10 @@ export function getPaymentMethods() {
     return [
         {
             id: 'bank_transfer',
-            name: 'Transfer Bank / VA',
+            name: 'Transfer Bank / ATM (Virtual Account)',
             type: 'bank_transfer',
             icon: '🏦',
-            description: 'Bayar via Virtual Account BCA, BNI, BRI, Mandiri, atau Permata',
+            description: 'Bayar via ATM atau mobile banking — BCA, BNI, BRI, Mandiri, Permata',
             providers: ['BCA', 'BNI', 'BRI', 'Mandiri', 'Permata'],
             fee: 0
         },
