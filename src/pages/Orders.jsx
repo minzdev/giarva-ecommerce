@@ -85,6 +85,25 @@ function OrderCard({ order }) {
                             </div>
                         </>
                     )}
+
+                    {/* Courier & tracking */}
+                    {order.courier && (
+                        <div className="mt-3">
+                            <p className="text-xs font-black text-ocean-700 uppercase tracking-widest mb-2">Pengiriman</p>
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                                <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-full text-xs font-bold">
+                                    🚚 {order.courier.name}
+                                </span>
+                                <span className="text-gray-400 text-xs">{order.courier.estimatedDelivery}</span>
+                            </div>
+                            {order.trackingNumber && (
+                                <div className="mt-2 bg-green-50 border border-green-200 rounded-xl px-4 py-2.5">
+                                    <p className="text-xs text-green-600">Nomor Resi</p>
+                                    <p className="font-bold text-green-800 font-mono">{order.trackingNumber}</p>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
         </div>
