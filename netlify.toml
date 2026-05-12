@@ -6,14 +6,14 @@
 [build.environment]
   SECRETS_SCAN_OMIT_KEYS = "VITE_FIREBASE_API_KEY,VITE_FIREBASE_AUTH_DOMAIN,VITE_FIREBASE_PROJECT_ID,VITE_FIREBASE_STORAGE_BUCKET,VITE_FIREBASE_MESSAGING_SENDER_ID,VITE_FIREBASE_APP_ID,VITE_CLOUDINARY_CLOUD_NAME,VITE_CLOUDINARY_UPLOAD_PRESET,VITE_MIDTRANS_CLIENT_KEY,VITE_MIDTRANS_IS_PRODUCTION,MIDTRANS_SERVER_KEY,MIDTRANS_IS_PRODUCTION"
 
-# SPA routing — redirect all non-asset requests to index.html
+# API proxy — MUST be before the SPA catch-all
+[[redirects]]
+  from   = "/api/create-transaction"
+  to     = "/.netlify/functions/create-transaction"
+  status = 200
+
+# SPA routing — catch-all, must be LAST
 [[redirects]]
   from   = "/*"
   to     = "/index.html"
-  status = 200
-
-# Proxy /api/* to Netlify Functions
-[[redirects]]
-  from   = "/api/*"
-  to     = "/.netlify/functions/:splat"
   status = 200

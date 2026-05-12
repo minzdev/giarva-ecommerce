@@ -247,7 +247,7 @@ export default function Checkout() {
                 });
             }
 
-            const apiRes = await fetch('/api/create-transaction', {
+            const apiRes = await fetch('/.netlify/functions/create-transaction', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
