@@ -270,40 +270,54 @@ export default function Checkout() {
             const { token } = await apiRes.json();
 
             // 4. Open Midtrans Snap popup
-            await openSnapPayment(token, {
-                onSuccess: async (result) => {
-                    await updateDoc(doc(db, 'orders', newOrderId), {
+            // Note: callbacks run inside Snap iframe context — keep them synchronous
+            // and use fire-and-forget for Firestore updates to avoid postMessage issues
+            openSnapPayment(token, {
+                onSuccess: (result) => {
+                    // Fire-and-forget Firestore update
+                    updateDoc(doc(db, 'orders', newOrderId), {
                         status: 'paid',
                         midtransOrderId: result.order_id || newOrderId,
                         paidAt: serverTimestamp(),
-                    });
+                    }).catch(console.error);
+
+                    clearCart();
                     setOrderId(newOrderId);
                     setOrderSuccess(true);
-                    clearCart();
+                    setIsSubmitting(false);
                     toast.success('Pembayaran berhasil! Pesanan sedang diproses.');
                 },
-                onPending: async (result) => {
-                    await updateDoc(doc(db, 'orders', newOrderId), {
+                onPending: (result) => {
+                    // Payment pending (VA/QRIS waiting for payment)
+                    updateDoc(doc(db, 'orders', newOrderId), {
                         status: 'pending',
                         midtransOrderId: result.order_id || newOrderId,
-                    });
+                    }).catch(console.error);
+
+                    clearCart();
                     setOrderId(newOrderId);
                     setOrderSuccess(true);
-                    clearCart();
+                    setIsSubmitting(false);
                     toast.success('Pesanan dibuat! Selesaikan pembayaran sesuai instruksi.');
                 },
                 onError: () => {
                     setErrorMessage('Pembayaran gagal. Silakan coba lagi atau pilih metode lain.');
+                    setIsSubmitting(false);
                 },
                 onClose: () => {
-                    setErrorMessage('Pembayaran dibatalkan. Selesaikan pembayaran dari halaman Pesanan.');
+                    // User closed without paying — order stays as pending_payment
+                    // Show info so they can pay later from Orders page
+                    clearCart();
+                    setOrderId(newOrderId);
+                    setOrderSuccess(true);
+                    setIsSubmitting(false);
+                    toast.success('Pesanan tersimpan. Selesaikan pembayaran dari halaman Pesanan.');
                 },
             });
         } catch (error) {
             console.error('Error creating order:', error);
             setErrorMessage(error.message || 'Gagal menyimpan pesanan. Periksa koneksi dan coba lagi.');
             toast.error('Gagal membuat pesanan. Coba lagi.');
-        } finally {
             setIsSubmitting(false);
         }
     };

@@ -16,7 +16,9 @@ const formatDate = (ts) => {
 };
 
 const STATUS_MAP = {
+    pending_payment: { label: 'Menunggu Pembayaran', color: 'bg-orange-100 text-orange-700 border-orange-200' },
     pending: { label: 'Menunggu Konfirmasi', color: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
+    paid: { label: 'Dibayar', color: 'bg-green-100 text-green-700 border-green-200' },
     processing: { label: 'Diproses', color: 'bg-blue-100 text-blue-700 border-blue-200' },
     shipped: { label: 'Dikirim', color: 'bg-ocean-100 text-ocean-700 border-ocean-200' },
     delivered: { label: 'Selesai', color: 'bg-green-100 text-green-700 border-green-200' },
@@ -99,13 +101,31 @@ export default function Orders() {
         if (!user) return;
         const load = async () => {
             try {
-                const q = query(
-                    collection(db, 'orders'),
-                    where('userId', '==', user.uid),
-                    orderBy('timestamp', 'desc')
-                );
-                const snap = await getDocs(q);
-                setOrders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+                // Try with orderBy first, fall back without it if index missing
+                let snap;
+                try {
+                    const q = query(
+                        collection(db, 'orders'),
+                        where('userId', '==', user.uid),
+                        orderBy('timestamp', 'desc')
+                    );
+                    snap = await getDocs(q);
+                } catch {
+                    // Fallback: query without orderBy (no composite index needed)
+                    const q = query(
+                        collection(db, 'orders'),
+                        where('userId', '==', user.uid)
+                    );
+                    snap = await getDocs(q);
+                }
+                const list = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                // Sort client-side
+                list.sort((a, b) => {
+                    const ta = a.timestamp?.toDate?.() ?? new Date(0);
+                    const tb = b.timestamp?.toDate?.() ?? new Date(0);
+                    return tb - ta;
+                });
+                setOrders(list);
             } catch (e) {
                 console.error(e);
                 setError('Gagal memuat riwayat pesanan. Coba muat ulang halaman.');
