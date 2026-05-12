@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
+import { collection, getDocs, orderBy, query, limit } from 'firebase/firestore';
+import { db } from '../services/firebase';
 import SEOHelmet from '../components/SEOHelmet';
 import ProductCard from '../components/ProductCard';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -212,6 +214,14 @@ const FEATURES = [
 export default function Home() {
     const { products, loading, error } = useProducts();
     const { addItem } = useCart();
+
+    // Fetch latest approved reviews for testimonials
+    const [reviews, setReviews] = useState([]);
+    useEffect(() => {
+        getDocs(query(collection(db, 'reviews'), orderBy('createdAt', 'desc'), limit(12)))
+            .then(snap => setReviews(snap.docs.map(d => ({ id: d.id, ...d.data() }))))
+            .catch(() => { }); // silently fail — testimonials are non-critical
+    }, []);
 
     const scrollToProducts = () => {
         document.getElementById('produk')?.scrollIntoView({ behavior: 'smooth' });
@@ -476,6 +486,73 @@ export default function Home() {
                     )}
                 </div>
             </section>
+
+            {/* ── Testimonials Section ─────────────────────────────────────── */}
+            {reviews.length > 0 && (
+                <section className="py-20 bg-white" aria-labelledby="testimonials-heading">
+                    <div className="max-w-6xl mx-auto px-6">
+                        <div className="text-center mb-12">
+                            <h2 id="testimonials-heading" className="text-3xl sm:text-4xl font-bold text-gray-800 mb-3">
+                                Kata Pelanggan Kami
+                            </h2>
+                            <p className="text-gray-500 text-lg max-w-xl mx-auto">
+                                Ribuan keluarga sudah merasakan manfaat Susu Etawa Giarva.
+                            </p>
+                            {/* Average rating */}
+                            {reviews.length > 0 && (() => {
+                                const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length;
+                                return (
+                                    <div className="flex items-center justify-center gap-2 mt-4">
+                                        <span className="text-3xl font-black text-yellow-500">{avg.toFixed(1)}</span>
+                                        <div className="flex gap-0.5">
+                                            {[1, 2, 3, 4, 5].map(s => (
+                                                <span key={s} className={`text-xl ${s <= Math.round(avg) ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>
+                                            ))}
+                                        </div>
+                                        <span className="text-gray-400 text-sm">({reviews.length} ulasan)</span>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {reviews.map(review => (
+                                <article key={review.id} className="bg-gray-50 rounded-2xl p-6 flex flex-col gap-3 border border-gray-100 hover:shadow-md transition-shadow">
+                                    {/* Stars */}
+                                    <div className="flex gap-0.5">
+                                        {[1, 2, 3, 4, 5].map(s => (
+                                            <span key={s} className={`text-lg ${s <= review.rating ? 'text-yellow-400' : 'text-gray-200'}`}>★</span>
+                                        ))}
+                                    </div>
+
+                                    {/* Comment */}
+                                    {review.comment && (
+                                        <p className="text-gray-700 text-sm leading-relaxed italic">
+                                            "{review.comment}"
+                                        </p>
+                                    )}
+
+                                    {/* Reviewer */}
+                                    <div className="flex items-center gap-3 mt-auto pt-3 border-t border-gray-200">
+                                        <div className="w-9 h-9 rounded-full bg-ocean-600 flex items-center justify-center text-white font-black text-sm flex-shrink-0">
+                                            {(review.userName || 'P').charAt(0).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <p className="text-sm font-bold text-gray-800">{review.userName || 'Pelanggan'}</p>
+                                            {review.productNames && (
+                                                <p className="text-xs text-gray-400 truncate max-w-[160px]">{review.productNames}</p>
+                                            )}
+                                        </div>
+                                        <span className="ml-auto text-xs text-green-600 font-semibold bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+                                            ✓ Pembeli
+                                        </span>
+                                    </div>
+                                </article>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
 
             {/* ── CTA Banner ───────────────────────────────────────────────── */}
             <section className="py-16 bg-ocean-500" aria-label="Call to action">
