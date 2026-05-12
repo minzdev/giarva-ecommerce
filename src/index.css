@@ -1,0 +1,152 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ocean: #2196F3;
+  --color-ocean-50: #e3f2fd;
+  --color-ocean-100: #bbdefb;
+  --color-ocean-200: #90caf9;
+  --color-ocean-300: #64b5f6;
+  --color-ocean-400: #42a5f5;
+  --color-ocean-500: #2196F3;
+  --color-ocean-600: #1e88e5;
+  --color-ocean-700: #1976d2;
+  --color-ocean-800: #1565c0;
+  --color-ocean-900: #0d47a1;
+
+  --color-gold: #C9A84C;
+  --color-gold-50: #fdf8ec;
+  --color-gold-100: #f9edcc;
+  --color-gold-200: #f3d999;
+  --color-gold-300: #ecc566;
+  --color-gold-400: #C9A84C;
+  --color-gold-500: #b08a2e;
+  --color-gold-600: #8d6e22;
+  --color-gold-700: #6a5219;
+  --color-gold-800: #473710;
+  --color-gold-900: #241b08;
+
+  --font-sans: Inter, system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+:root {
+  --color-ocean: #2196F3;
+  --color-gold: #C9A84C;
+  --color-white: #FFFFFF;
+
+  font-family: Inter, system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background-color: #ffffff;
+  color: #1a1a1a;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* Hero image seamless blend */
+.hero-img-blend {
+  -webkit-mask-image:
+    radial-gradient(ellipse 90% 90% at 60% 50%, black 55%, transparent 100%);
+  mask-image:
+    radial-gradient(ellipse 90% 90% at 60% 50%, black 55%, transparent 100%);
+}
+
+/* ── Promo ticker / marquee ── */
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 28s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+/* ── Promo card slide-in ── */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.promo-card {
+  animation: slideInUp 0.5s ease both;
+}
+
+/* ── WA float pulse ── */
+@keyframes waPulse {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.5);
+  }
+
+  50% {
+    box-shadow: 0 0 0 14px rgba(37, 211, 102, 0);
+  }
+}
+
+.wa-float {
+  animation: waPulse 2s ease-in-out infinite;
+}
+
+/* Hide browser built-in password reveal button (Edge/IE) */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear {
+  display: none;
+}
+
+/* Hide Chrome/Safari built-in password reveal */
+input[type="password"]::-webkit-credentials-auto-fill-button,
+input[type="password"]::-webkit-strong-password-auto-fill-button {
+  display: none !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Confirm dialog animation */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* LazyImage fade-in */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
