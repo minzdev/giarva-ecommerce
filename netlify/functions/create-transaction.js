@@ -9,7 +9,6 @@
  */
 
 exports.handler = async function (event) {
-    // Only allow POST
     if (event.httpMethod !== 'POST') {
         return { statusCode: 405, body: JSON.stringify({ message: 'Method not allowed' }) };
     }
@@ -34,11 +33,6 @@ exports.handler = async function (event) {
         return { statusCode: 400, body: JSON.stringify({ message: 'Missing required fields.' }) };
     }
 
-    // Enabled payment methods based on selection
-    const enabledPayments = paymentMethodId === 'qris'
-        ? ['qris']
-        : ['bca_va', 'bni_va', 'bri_va', 'mandiri_bill', 'permata_va'];
-
     // Ensure item total matches grossAmount (Midtrans strict requirement)
     const itemTotal = itemDetails.reduce(
         (sum, item) => sum + Math.round(item.price) * item.quantity,
@@ -54,6 +48,8 @@ exports.handler = async function (event) {
         ? 'https://app.midtrans.com/snap/v1/transactions'
         : 'https://app.sandbox.midtrans.com/snap/v1/transactions';
 
+    // Build payload — let Midtrans show all active channels from dashboard
+    // Only filter by payment type if specifically requested
     const payload = {
         transaction_details: { order_id: orderId, gross_amount: grossAmount },
         customer_details: {
@@ -66,8 +62,16 @@ exports.handler = async function (event) {
             price: Math.round(item.price),
             quantity: item.quantity,
         })),
-        enabled_payments: enabledPayments,
     };
+
+    // Only add enabled_payments if QRIS specifically selected
+    // For bank_transfer, let Midtrans show all active VA options
+    if (paymentMethodId === 'qris') {
+        payload.enabled_payments = ['qris', 'gopay', 'shopeepay'];
+    } else {
+        // bank_transfer — show all active VA banks
+        payload.enabled_payments = ['bca_va', 'bni_va', 'bri_va', 'mandiri_bill', 'permata_va', 'other_va'];
+    }
 
     try {
         const response = await fetch(snapUrl, {
@@ -83,6 +87,7 @@ exports.handler = async function (event) {
 
         if (!response.ok) {
             const errMsg = data.error_messages?.join(', ') || 'Midtrans error';
+            console.error('Midtrans error response:', JSON.stringify(data));
             return { statusCode: response.status, body: JSON.stringify({ message: errMsg }) };
         }
 
