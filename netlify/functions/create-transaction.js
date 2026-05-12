@@ -65,13 +65,11 @@ exports.handler = async function (event) {
     };
 
     // Only add enabled_payments if QRIS specifically selected
-    // For bank_transfer, let Midtrans show all active VA options
+    // For bank_transfer, let Midtrans show all active VA banks from dashboard
     if (paymentMethodId === 'qris') {
         payload.enabled_payments = ['qris', 'gopay', 'shopeepay'];
-    } else {
-        // bank_transfer — show all active VA banks
-        payload.enabled_payments = ['bca_va', 'bni_va', 'bri_va', 'mandiri_bill', 'permata_va', 'other_va'];
     }
+    // bank_transfer: do NOT set enabled_payments — let Midtrans use all active channels
 
     try {
         const response = await fetch(snapUrl, {
