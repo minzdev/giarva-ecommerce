@@ -270,53 +270,61 @@ export default function Checkout() {
             const { token } = await apiRes.json();
 
             // 4. Open Midtrans Snap popup
-            // After Snap closes (any reason), poll Midtrans API for real status
-            const handleSnapClose = async (ordId) => {
+            // Track if payment was completed before close
+            let paymentCompleted = false;
+
+            const handlePaymentDone = async (ordId, isSuccess) => {
+                paymentCompleted = true;
                 try {
                     const statusRes = await fetch(`/.netlify/functions/check-payment-status?orderId=${ordId}`);
-                    if (!statusRes.ok) return;
-                    const { appStatus, midtransStatus } = await statusRes.json();
+                    if (statusRes.ok) {
+                        const { appStatus } = await statusRes.json();
+                        const updateData = { status: appStatus, midtransOrderId: ordId };
+                        if (appStatus === 'paid') updateData.paidAt = serverTimestamp();
+                        await updateDoc(doc(db, 'orders', ordId), updateData).catch(console.error);
 
-                    const updateData = { status: appStatus, midtransOrderId: ordId };
-                    if (appStatus === 'paid') updateData.paidAt = serverTimestamp();
+                        clearCart();
+                        setOrderId(ordId);
+                        setOrderSuccess(true);
+                        setIsSubmitting(false);
 
-                    await updateDoc(doc(db, 'orders', ordId), updateData).catch(console.error);
-
-                    clearCart();
-                    setOrderId(ordId);
-                    setOrderSuccess(true);
-                    setIsSubmitting(false);
-
-                    if (appStatus === 'paid') {
-                        toast.success('Pembayaran berhasil! Pesanan sedang diproses.');
-                    } else if (appStatus === 'pending') {
-                        toast.success('Pesanan dibuat! Selesaikan pembayaran sesuai instruksi.');
-                    } else {
-                        toast.success('Pesanan tersimpan. Selesaikan pembayaran dari halaman Pesanan.');
+                        if (appStatus === 'paid') {
+                            toast.success('Pembayaran berhasil! Pesanan sedang diproses.');
+                        } else {
+                            toast.success('Pesanan dibuat! Selesaikan pembayaran sesuai instruksi.');
+                        }
+                        return;
                     }
-                } catch {
-                    // Fallback: show success anyway, webhook will update status
-                    clearCart();
-                    setOrderId(ordId);
-                    setOrderSuccess(true);
-                    setIsSubmitting(false);
-                    toast.success('Pesanan tersimpan. Status akan diperbarui otomatis.');
-                }
+                } catch { /* fallthrough */ }
+
+                // Fallback if status check fails
+                clearCart();
+                setOrderId(ordId);
+                setOrderSuccess(true);
+                setIsSubmitting(false);
+                toast.success(isSuccess
+                    ? 'Pembayaran berhasil! Pesanan sedang diproses.'
+                    : 'Pesanan dibuat! Selesaikan pembayaran sesuai instruksi.'
+                );
             };
 
             openSnapPayment(token, {
                 onSuccess: (result) => {
-                    handleSnapClose(result.order_id || newOrderId);
+                    handlePaymentDone(result.order_id || newOrderId, true);
                 },
                 onPending: (result) => {
-                    handleSnapClose(result.order_id || newOrderId);
+                    handlePaymentDone(result.order_id || newOrderId, false);
                 },
                 onError: () => {
                     setErrorMessage('Pembayaran gagal. Silakan coba lagi atau pilih metode lain.');
                     setIsSubmitting(false);
                 },
                 onClose: () => {
-                    handleSnapClose(newOrderId);
+                    // Only show "cancelled" if payment was NOT completed
+                    if (!paymentCompleted) {
+                        setErrorMessage('Pembayaran dibatalkan. Silakan coba lagi.');
+                        setIsSubmitting(false);
+                    }
                 },
             });
         } catch (error) {
